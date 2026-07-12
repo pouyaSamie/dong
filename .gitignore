@@ -45,3 +45,4 @@ test-results/
 .next/
 .agents/
 *.md
+!/README.md

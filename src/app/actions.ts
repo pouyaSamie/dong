@@ -67,7 +67,23 @@ export async function updateFamily(tripId: string, familyId: string, formData: F
   await prisma.family.update({ where: { id: familyId }, data: { name: result.data! } }); revalidatePath(`/trips/${tripId}/timeline`);
 }
 
-export async function deleteFamily(tripId: string, familyId: string) { await prisma.family.delete({ where: { id: familyId } }); revalidatePath(`/trips/${tripId}/timeline`); }
+async function ensurePeopleHaveNoFinancialRecords(tripId: string, personIds: string[]) {
+  const [paidExpenses, expenseShares, payments] = await Promise.all([
+    prisma.expense.count({ where: { tripId, payerPersonId: { in: personIds } } }),
+    prisma.expenseShare.count({ where: { personId: { in: personIds } } }),
+    prisma.payment.count({ where: { tripId, OR: [{ fromPersonId: { in: personIds } }, { toPersonId: { in: personIds } }] } }),
+  ]);
+
+  return paidExpenses + expenseShares + payments === 0;
+}
+
+export async function deleteFamily(tripId: string, familyId: string) {
+  const family = await prisma.family.findFirst({ where: { id: familyId, tripId }, include: { persons: { select: { id: true } } } });
+  if (!family) fail(`/trips/${tripId}/timeline`, "گروه پیدا نشد.");
+  if (!(await ensurePeopleHaveNoFinancialRecords(tripId, family!.persons.map((person) => person.id)))) fail(`/trips/${tripId}/timeline`, "این گروه سابقه هزینه، سهم هزینه یا پرداخت دارد. ابتدا سوابق مالی وابسته را حذف یا ویرایش کنید.");
+  await prisma.family.delete({ where: { id: familyId } });
+  revalidatePath(`/trips/${tripId}/timeline`);
+}
 
 export async function createPerson(tripId: string, familyId: string, formData: FormData) {
   const result = nameSchema.safeParse(value(formData, "name"));
@@ -87,7 +103,13 @@ export async function updatePerson(tripId: string, personId: string, formData: F
   await prisma.person.update({ where: { id: personId }, data: { name: result.data!, familyId } }); revalidatePath(`/trips/${tripId}/timeline`);
 }
 
-export async function deletePerson(tripId: string, personId: string) { await prisma.person.delete({ where: { id: personId } }); revalidatePath(`/trips/${tripId}/timeline`); }
+export async function deletePerson(tripId: string, personId: string) {
+  const person = await prisma.person.findFirst({ where: { id: personId, tripId }, select: { id: true } });
+  if (!person) fail(`/trips/${tripId}/timeline`, "عضو پیدا نشد.");
+  if (!(await ensurePeopleHaveNoFinancialRecords(tripId, [personId]))) fail(`/trips/${tripId}/timeline`, "این عضو سابقه هزینه، سهم هزینه یا پرداخت دارد. ابتدا سوابق مالی وابسته را حذف یا ویرایش کنید.");
+  await prisma.person.delete({ where: { id: personId } });
+  revalidatePath(`/trips/${tripId}/timeline`);
+}
 
 export async function toggleAttendanceDay(tripId: string, personId: string, dateValue: string) {
   const [trip, person] = await Promise.all([prisma.trip.findUnique({ where: { id: tripId } }), prisma.person.findFirst({ where: { id: personId, tripId }, include: { attendancePeriods: true } })]);
