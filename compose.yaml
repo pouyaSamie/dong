@@ -1,0 +1,35 @@
+services:
+  dong:
+    image: dong:1.0.0
+    container_name: dong
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      DATABASE_URL: "file:/data/dong.db"
+
+    expose:
+      - "3000"
+
+    volumes:
+      - dong-data:/data
+
+  nginx:
+    image: nginx:alpine
+    container_name: dong-nginx
+    restart: unless-stopped
+
+    depends_on:
+      - dong
+
+    ports:
+      - "80:80"
+
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  dong-data:
+    name: dong-data

@@ -1,0 +1,4 @@
+http://dong.psamie.ir {
+  encode zstd gzip
+  reverse_proxy dong:3000
+}

@@ -1,0 +1,122 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum CurrencyDisplayUnit {
+  RIAL
+  TOMAN
+}
+
+model Trip {
+  id          String              @id @default(cuid())
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  displayUnit CurrencyDisplayUnit @default(TOMAN)
+  families    Family[]
+  persons     Person[]
+  expenses    Expense[]
+  payments    Payment[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model Family {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  name      String
+  persons   Person[]
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
+}
+
+model Person {
+  id                String             @id @default(cuid())
+  tripId            String
+  familyId          String
+  trip              Trip               @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  family            Family             @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  name              String
+  attendancePeriods AttendancePeriod[]
+  paidExpenses      Expense[]          @relation("ExpensePayer")
+  expenseShares     ExpenseShare[]
+  sentPayments      Payment[]          @relation("PaymentSender")
+  receivedPayments  Payment[]          @relation("PaymentReceiver")
+  createdAt         DateTime           @default(now())
+
+  @@index([tripId])
+  @@index([familyId])
+}
+
+enum ExpenseCategory {
+  FOOD
+  ACCOMMODATION
+  TRANSPORT
+  SHOPPING
+  ENTERTAINMENT
+  OTHER
+}
+
+model Expense {
+  id            String          @id @default(cuid())
+  tripId        String
+  payerPersonId String
+  trip          Trip            @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  payer         Person          @relation("ExpensePayer", fields: [payerPersonId], references: [id])
+  expenseDate   DateTime
+  amountRial    BigInt
+  category      ExpenseCategory
+  description   String?
+  shares        ExpenseShare[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([tripId, expenseDate])
+}
+
+model ExpenseShare {
+  id        String  @id @default(cuid())
+  expenseId String
+  personId  String
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  shareRial BigInt
+
+  @@unique([expenseId, personId])
+  @@index([expenseId, personId])
+}
+
+model Payment {
+  id           String   @id @default(cuid())
+  tripId       String
+  fromPersonId String
+  toPersonId   String
+  trip         Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  fromPerson   Person   @relation("PaymentSender", fields: [fromPersonId], references: [id])
+  toPerson     Person   @relation("PaymentReceiver", fields: [toPersonId], references: [id])
+  paymentDate  DateTime
+  amountRial   BigInt
+  description  String?
+  createdAt    DateTime @default(now())
+
+  @@index([tripId, paymentDate])
+}
+
+model AttendancePeriod {
+  id        String   @id @default(cuid())
+  tripId    String
+  personId  String
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  startDate DateTime
+  endDate   DateTime
+
+  @@index([personId, startDate, endDate])
+}

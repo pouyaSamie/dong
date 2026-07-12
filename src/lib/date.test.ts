@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { formatJalaliDate, formatPersianWeekday, parseLocalDate, toLocalDate } from "./date";
+describe("Jalali dates", () => { it("renders a Persian Jalali date", () => expect(formatJalaliDate(parseLocalDate("2026-08-03"))).toBe("۱۲ مرداد ۱۴۰۵")); it("renders Persian weekday names from the UTC trip date", () => expect(formatPersianWeekday(parseLocalDate("2026-08-06"))).toBe("پنجشنبه")); it("keeps an ISO trip day stable across Tehran's UTC offset", () => { const day = parseLocalDate("2026-08-03"); expect(toLocalDate(day)).toBe("2026-08-03"); expect(day.getTime()).toBe(Date.UTC(2026, 7, 3)); }); });

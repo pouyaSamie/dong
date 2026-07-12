@@ -1,0 +1,20 @@
+import { expect, test } from "@playwright/test";
+test("Persian RTL trip creation flow", async ({ page }, testInfo) => {
+  const tripName = `سفر آزمایشی ${testInfo.project.name}`;
+  await page.goto("/trips");
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await page.getByLabel("تاریخ شروع").click();
+  await page.locator(".rmdp-day:not(.rmdp-day-hidden):not(.rmdp-disabled) span").first().click();
+  await expect(page.locator(".rmdp-calendar")).toBeHidden();
+  await page.getByLabel("نام سفر").fill(tripName);
+  await page.getByLabel("تاریخ شروع").waitFor();
+  await page.waitForTimeout(500);
+  await page.locator('input[name="startDate"]').evaluate((element) => { (element as HTMLInputElement).value = "2026-08-03"; });
+  await page.locator('input[name="endDate"]').evaluate((element) => { (element as HTMLInputElement).value = "2026-08-05"; });
+  await page.getByRole("button", { name: "ساخت سفر" }).click();
+  await expect(page).toHaveURL(/\/timeline/);
+  await expect(page.getByRole("heading", { name: tripName, exact: true })).toBeVisible();
+  await page.getByLabel("نام شخص").fill("سارا");
+  await page.getByRole("button", { name: "افزودن", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "سارا", exact: true })).toBeVisible();
+});

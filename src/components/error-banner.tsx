@@ -1,0 +1,1 @@
+export function ErrorBanner({ message }: { message?: string }) { return message ? <div role="alert" className="mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-700">{message}</div> : null; }

@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { tripSchema } from "./validation";
+describe("trip validation", () => { it("accepts a valid trip", () => expect(tripSchema.safeParse({ name: "شمال", startDate: "2026-08-03", endDate: "2026-08-10", displayUnit: "TOMAN" }).success).toBe(true)); it("rejects reversed dates and trips over 60 days", () => { expect(tripSchema.safeParse({ name: "سفر", startDate: "2026-08-10", endDate: "2026-08-03", displayUnit: "TOMAN" }).success).toBe(false); expect(tripSchema.safeParse({ name: "سفر", startDate: "2026-01-01", endDate: "2026-05-01", displayUnit: "TOMAN" }).success).toBe(false); }); });
