@@ -14,13 +14,16 @@ FROM base AS production
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
-COPY --from=build /app/public ./public
 COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/public ./public
 COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/prisma ./prisma
-COPY --from=dependencies /app/node_modules ./node_modules
-COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh && mkdir -p /data
+RUN mkdir -p /data
 VOLUME ["/data"]
 EXPOSE 3000
-ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["node", "server.js"]
+
+# Build this target only when database migrations change. Keeping Prisma's CLI
+# out of the normal runtime image makes routine application releases smaller.
+FROM build AS migration
+ENV NODE_ENV=production
+ENTRYPOINT ["npx", "prisma", "migrate", "deploy"]

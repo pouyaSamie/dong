@@ -1,6 +1,6 @@
 services:
   dong:
-    image: dong:1.0.0
+    image: ${DONG_IMAGE:-dong:latest}
     container_name: dong
     restart: unless-stopped
 
